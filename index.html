@@ -15,6 +15,81 @@ h1 { text-align: center; color: #333; }
 <body>
 
 <h1>AI-Based Customer Insights Dashboard</h1>
+<div id="scatter-income-spending" class="chart"></div>
+<div id="scatter-age-spending" class="chart"></div>
+<div id="hist-age" class="chart"></div>
+<div id="hist-income" class="chart"></div>
+
+<script>
+const githubCSV = "Mall_Customers.csv"; // CSV موجود في نفس الريبو
+
+Papa.parse(githubCSV, {
+    download: true,
+    header: true,
+    dynamicTyping: true,
+    complete: function(results) {
+        const data = results.data.filter(d => d.CustomerID || d.CustomerId);
+
+        // مرونة مع أسماء الأعمدة المختلفة
+        const age = data.map(d => d.Age || d.age || d['Age']);
+        const income = data.map(d => d['Annual Income (k$)'] || d.AnnualIncome || d['AnnualIncome']);
+        const spending = data.map(d => d['Spending Score (1-100)'] || d.SpendingScore || d['SpendingScore']);
+
+        // شيل الصفوف الفارغة
+        const filtered = age.map((a,i)=> ({age:a, income:income[i], spending:spending[i]}))
+                             .filter(d => d.age && d.income && d.spending);
+
+        const finalAge = filtered.map(d=>d.age);
+        const finalIncome = filtered.map(d=>d.income);
+        const finalSpending = filtered.map(d=>d.spending);
+
+        // تجهيز KMeans
+        const X = finalIncome.map((inc,i)=>[inc, finalSpending[i]]);
+        const kmeans = mlKMeans(X, 3);
+        const colors = kmeans.clusters.map(c => c===0?'red':c===1?'blue':'green');
+
+        // Scatter: الدخل السنوي مقابل درجة الانفاق
+        Plotly.newPlot('scatter-income-spending', [{
+            x: finalIncome, y: finalSpending, mode:'markers',
+            marker:{color:colors, size:12},
+            text: filtered.map(c => `Age:${c.age}<br>Income:${c.income}k$<br>Spending:${c.spending}`)
+        }], {title:'الدخل السنوي مقابل درجة الانفاق', xaxis:{title:'الدخل السنوي (k$)'}, yaxis:{title:'درجة الانفاق'}});
+
+        // Scatter: العمر مقابل درجة الانفاق
+        Plotly.newPlot('scatter-age-spending', [{
+            x: finalAge, y: finalSpending, mode:'markers',
+            marker:{color:colors, size:12},
+            text: filtered.map(c => `Age:${c.age}<br>Income:${c.income}k$<br>Spending:${c.spending}`)
+        }], {title:'العمر مقابل درجة الانفاق', xaxis:{title:'العمر'}, yaxis:{title:'درجة الانفاق'}});
+
+        // Histogram: توزيع الأعمار
+        Plotly.newPlot('hist-age', [{x:finalAge, type:'histogram', marker:{color:'skyblue'}}], {title:'توزيع الأعمار'});
+
+        // Histogram: الدخل السنوي
+        Plotly.newPlot('hist-income', [{x:finalIncome, type:'histogram', marker:{color:'orange'}}], {title:'توزيع الدخل السنوي'});
+    }
+});
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>AI-Based Customer Insights Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ml-kmeans@3.0.0/dist/ml-kmeans.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+h1 { text-align: center; color: #333; }
+.chart { margin: 30px auto; width: 90%; max-width: 1000px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+
+<h1>AI-Based Customer Insights Dashboard</h1>
 
 <div id="scatter-income-spending" class="chart"></div>
 <div id="scatter-age-spending" class="chart"></div>
